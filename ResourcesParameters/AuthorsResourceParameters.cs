@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace CourseLibrary.Api.ResourcesParameters
 {
-    public class AuthorsResourceParameters
+    public class AuthorsResourceParameters : BaseResourcesParameters
     {
         public string mainCategory { get; set; }
-        public string searchQuery { get; set; }
     }
 }

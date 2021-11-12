@@ -76,7 +76,111 @@ namespace CourseLibrary.Api.Models
                     LastName = "Crow Ridley",
                     DateOfBirth = new DateTime(1721, 10, 11),
                     MainCategory = "Rum"
-                }
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("4b822af2-4a03-40c4-bea7-62aade333b32"),
+                    FirstName = "Sadek",
+                    LastName = "Mohamed",
+                    DateOfBirth = new DateTime(1999, 10, 10),
+                    MainCategory = "Rum"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("1505dc65-0594-4e1e-98fb-49fb19e09db2"),
+                    FirstName = "Salem",
+                    LastName = "Ahmed",
+                    DateOfBirth = new DateTime(1993, 10, 10),
+                    MainCategory = "Ships"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("0f7ab3e2-dc5c-4512-93d0-cea929ca7508"),
+                    FirstName = "Mohamed",
+                    LastName = "Shaaban",
+                    DateOfBirth = new DateTime(2000, 10, 10),
+                    MainCategory = "Rum"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("6508b058-31fd-43da-890f-14fe8ed5f290"),
+                    FirstName = "Reda",
+                    LastName = "Mabrook",
+                    DateOfBirth = new DateTime(1970, 10, 10),
+                    MainCategory = "Rum"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("1279039b-665d-4cc3-b0d7-d3c643878f84"),
+                    FirstName = "Haitham",
+                    LastName = "Mohsen",
+                    DateOfBirth = new DateTime(1975, 10, 10),
+                    MainCategory = "Ships"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("b2193e38-2226-4985-91a0-57a535a9f0e5"),
+                    FirstName = "Mohamed",
+                    LastName = "Amin",
+                    DateOfBirth = new DateTime(1990, 10, 10),
+                    MainCategory = "Ships"
+                },
+                new Author()
+                {
+                    Id = Guid.Parse("66adbead-f3a5-4558-92b2-f88301b067e3"),
+                    FirstName = "Mosh",
+                    LastName = "Hamedani",
+                    DateOfBirth = new DateTime(1990, 10, 10),
+                    MainCategory = "Ships"
+                },
+                 new Author()
+                 {
+                     Id = Guid.Parse("4b1111bb-a637-4414-aba5-872a944a9fa1"),
+                     FirstName = "Tim",
+                     LastName = "Corey",
+                     DateOfBirth = new DateTime(1990, 10, 10),
+                     MainCategory = "Rum"
+                 },
+                 new Author()
+                 {
+                     Id = Guid.Parse("17f93f58-ca1b-4064-aaba-2072185ec130"),
+                     FirstName = "Amr",
+                     LastName = "Gaber",
+                     DateOfBirth = new DateTime(1985, 10, 10),
+                     MainCategory = "Rum"
+                 },
+                  new Author()
+                  {
+                      Id = Guid.Parse("72cf36f7-8f10-4ab4-9a92-cf7c5c1b6e29"),
+                      FirstName = "Eslam",
+                      LastName = "Gaber",
+                      DateOfBirth = new DateTime(1985, 10, 10),
+                      MainCategory = "Rum"
+                  },
+                   new Author()
+                   {
+                       Id = Guid.Parse("153552a4-cb9c-4566-8040-8d44cb7428f8"),
+                       FirstName = "Ahmed",
+                       LastName = "Wael",
+                       DateOfBirth = new DateTime(1985, 10, 10),
+                       MainCategory = "Rum"
+                   },
+                   new Author()
+                   {
+                       Id = Guid.Parse("93fe5856-6806-4b27-b1bd-8b98599ca6bd"),
+                       FirstName = "Toty",
+                       LastName = "El-Tablawy",
+                       DateOfBirth = new DateTime(1985, 10, 10),
+                       MainCategory = "Love"
+                   },
+                   new Author()
+                   {
+                       Id = Guid.Parse("11e09402-ffd8-4ef8-853e-35d8950c70ae"),
+                       FirstName = "Bosy",
+                       LastName = "El-Tablawy",
+                       DateOfBirth = new DateTime(1985, 10, 10),
+                       MainCategory = "Ships"
+                   }
                 );
 
             modelBuilder.Entity<Course>().HasData(

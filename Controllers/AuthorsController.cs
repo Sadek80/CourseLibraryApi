@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace CourseLibrary.Api.Controllers
@@ -34,12 +36,36 @@ namespace CourseLibrary.Api.Controllers
 
         }
 
-        [HttpGet()]
+        [HttpGet(Name = "GetAuthors")]
         [HttpHead]
-        public ActionResult<IEnumerable<AuthorsDto>> GetAuthors([FromQuery]
-                                                                AuthorsResourceParameters authorsParameters)
+        public ActionResult<IEnumerable<AuthorsDto>> GetAuthors(
+        [FromQuery]
+        AuthorsResourceParameters authorsParameters)
         {
             var authorsFromRepo = _courseLibraryRepository.GetAuthors(authorsParameters);
+
+            var nextPageLink = authorsFromRepo.HasNext ?
+                CreateAuthorResourceUri(authorsParameters,
+                    ResourcePagingUriType.nextPage) : null;
+
+            var previousPageLink = authorsFromRepo.HasPrevious ?
+                CreateAuthorResourceUri(authorsParameters,
+                    ResourcePagingUriType.prevPage) : null;
+
+            var pagingMetaData = new
+            {
+                totalCount = authorsFromRepo.TotalCount,
+                pageSize = authorsParameters.PageSize,
+                totalPages = authorsFromRepo.TotalPages,
+                currentPage = authorsParameters.PageNumber,
+                previousPageLink,
+                nextPageLink,
+            };
+
+            Response.Headers.Add("X-Paginations",
+                JsonSerializer.Serialize(pagingMetaData,
+                    new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping}));
+
             return Ok(_mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo));
         }
 
@@ -147,6 +173,40 @@ namespace CourseLibrary.Api.Controllers
             var options = HttpContext.RequestServices.GetRequiredService<IOptions<ApiBehaviorOptions>>();
 
             return (ActionResult) options.Value.InvalidModelStateResponseFactory(ControllerContext);
+        }
+
+        private string CreateAuthorResourceUri(AuthorsResourceParameters authorsResourceParameters,
+            ResourcePagingUriType uriType)
+        {
+            switch (uriType)
+            {
+                case ResourcePagingUriType.nextPage:
+                    return Url.Link("GetAuthors", new 
+                    { 
+                        pageSize = authorsResourceParameters.PageSize,
+                        pageNumber = authorsResourceParameters.PageNumber + 1,
+                        mainCategory = authorsResourceParameters.mainCategory,
+                        searchQuery = authorsResourceParameters.searchQuery
+                    });
+
+                case ResourcePagingUriType.prevPage:
+                    return Url.Link("GetAuthors", new
+                    {
+                        pageSize = authorsResourceParameters.PageSize,
+                        pageNumber = authorsResourceParameters.PageNumber - 1,
+                        mainCategory = authorsResourceParameters.mainCategory,
+                        searchQuery = authorsResourceParameters.searchQuery
+                    });
+
+                default:
+                    return Url.Link("GetAuthors", new
+                    {
+                        pageSize = authorsResourceParameters.PageSize,
+                        pageNumber = authorsResourceParameters.PageNumber,
+                        mainCategory = authorsResourceParameters.mainCategory,
+                        searchQuery = authorsResourceParameters.searchQuery
+                    });
+            }
         }
     }
 }

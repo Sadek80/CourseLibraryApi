@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.Models.DTOs.CourseDtos;
+using CourseLibrary.Api.ResourcesParameters;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -11,6 +13,8 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace CourseLibrary.Api.Controllers
@@ -31,13 +35,34 @@ namespace CourseLibrary.Api.Controllers
                 throw new ArgumentNullException(nameof(mapper));
         }
 
-        [HttpGet]
-        public ActionResult<IEnumerable<CoursesDto>> GetCoursesForAuthor(Guid authorId)
+        [HttpGet(Name = "GetCoursesForAuthor")]
+        public ActionResult<IEnumerable<CoursesDto>> GetCoursesForAuthor(Guid authorId,
+            [FromQuery] 
+            BaseResourcesParameters parameters)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
 
-            var courses = _courseLibraryRepository.GetCourses(authorId);
+            var courses = _courseLibraryRepository.GetCourses(authorId, parameters);
+
+            var nexPageLink = courses.HasNext ? CreateCoursesResourceUri(parameters,
+                                                            ResourcePagingUriType.nextPage) : null;
+
+            var previousPageLink = courses.HasPrevious ? CreateCoursesResourceUri(parameters,
+                                                            ResourcePagingUriType.prevPage) : null;
+
+            var pagingMetaData = new
+            {
+                totalCount = courses.TotalCount,
+                pageSize = parameters.PageSize,
+                totalPages = courses.TotalPages,
+                currentPage = parameters.PageNumber,
+                nexPageLink,
+                previousPageLink
+            };
+
+            Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagingMetaData,
+                new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
             return Ok(_mapper.Map<IEnumerable<CoursesDto>>(courses));
         }
@@ -180,6 +205,37 @@ namespace CourseLibrary.Api.Controllers
                 GetRequiredService<IOptions<ApiBehaviorOptions>>();
 
             return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
+        }
+
+        private string CreateCoursesResourceUri(BaseResourcesParameters parameters, 
+            ResourcePagingUriType uriType)
+        {
+            switch (uriType)
+            {
+                case ResourcePagingUriType.nextPage:
+                    return Url.Link("GetCoursesForAuthor", new
+                    {
+                        searchQuery = parameters.searchQuery,
+                        pageNumber = parameters.PageNumber + 1,
+                        pageSize = parameters.PageSize
+                    });
+
+                case ResourcePagingUriType.prevPage:
+                    return Url.Link("GetCoursesForAuthor", new
+                    {
+                        searchQuery = parameters.searchQuery,
+                        pageNumber = parameters.PageNumber - 1,
+                        pageSize = parameters.PageSize
+                    });
+
+                default:
+                    return Url.Link("GetCoursesForAuthor", new
+                    {
+                        searchQuery = parameters.searchQuery,
+                        pageNumber = parameters.PageNumber,
+                        pageSize = parameters.PageSize
+                    });
+            }
         }
     }
 }

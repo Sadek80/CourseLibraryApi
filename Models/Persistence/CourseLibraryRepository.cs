@@ -1,4 +1,5 @@
-﻿using CourseLibrary.Api.Models.Core;
+﻿using CourseLibrary.Api.Helpers;
+using CourseLibrary.Api.Models.Core;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.ResourcesParameters;
@@ -55,16 +56,23 @@ namespace CourseLibrary.Api.Models.Persistence
               .Where(c => c.AuthorId == authorId && c.Id == courseId).FirstOrDefault();
         }
 
-        public IEnumerable<Course> GetCourses(Guid authorId)
+        public PagedList<Course> GetCourses(Guid authorId, BaseResourcesParameters parameters)
         {
             if (authorId == Guid.Empty)
             {
                 throw new ArgumentNullException(nameof(authorId));
             }
 
-            return _context.Courses
+            var collection = _context.Courses
                         .Where(c => c.AuthorId == authorId)
-                        .OrderBy(c => c.Title).ToList();
+                        .OrderBy(c => c.Title) as IQueryable<Course>;
+
+            if (!string.IsNullOrWhiteSpace(parameters.searchQuery))
+            {
+                collection = collection.Where(c => c.Title.Contains(parameters.searchQuery.Trim()));
+            }
+
+            return PagedList<Course>.CreatePagedList(collection, parameters.PageNumber, parameters.PageSize);
         }
 
         public void UpdateCourse(Course course)
@@ -121,17 +129,8 @@ namespace CourseLibrary.Api.Models.Persistence
             return _context.Authors.FirstOrDefault(a => a.Id == authorId);
         }
 
-        public IEnumerable<Author> GetAuthors()
+        public PagedList<Author> GetAuthors(AuthorsResourceParameters authorsParameters)
         {
-            return _context.Authors.ToList<Author>();
-        }
-
-        public IEnumerable<Author> GetAuthors(AuthorsResourceParameters authorsParameters)
-        {
-            if (string.IsNullOrWhiteSpace(authorsParameters.mainCategory) 
-                && string.IsNullOrWhiteSpace(authorsParameters.searchQuery))
-                return GetAuthors();
-
             // Get the IQuerable authors for better performance manners
             var collection = _context.Authors as IQueryable<Author>;
 
@@ -150,7 +149,10 @@ namespace CourseLibrary.Api.Models.Persistence
                                                || a.LastName.Contains(searchQuery));
             }
 
-            return collection.ToList();
+            return PagedList<Author>.CreatePagedList(
+                collection,
+                authorsParameters.PageNumber, 
+                authorsParameters.PageSize);
         }
         public IEnumerable<Author> GetAuthors(IEnumerable<Guid> authorIds)
         {
