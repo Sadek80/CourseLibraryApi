@@ -2,7 +2,10 @@
 using CourseLibrary.Api.Models.Core;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
+using CourseLibrary.Api.Models.DTOs.AuthorDtos;
+using CourseLibrary.Api.Models.DTOs.CourseDtos;
 using CourseLibrary.Api.ResourcesParameters;
+using CourseLibrary.Api.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +16,13 @@ namespace CourseLibrary.Api.Models.Persistence
     public class CourseLibraryRepository : ICourseLibraryRepository
     {
         private readonly AppDataContext _context;
+        private readonly IPropertyMappingService _propertyMappingService;
 
-        public CourseLibraryRepository(AppDataContext context)
+        public CourseLibraryRepository(AppDataContext context, IPropertyMappingService propertyMappingService)
         {
             this._context = context ?? throw new ArgumentNullException(nameof(_context));
+            this._propertyMappingService = propertyMappingService ??
+                throw new ArgumentNullException(nameof(propertyMappingService));
         }
 
         public void AddCourse(Guid authorId, Course course)
@@ -71,6 +77,10 @@ namespace CourseLibrary.Api.Models.Persistence
             {
                 collection = collection.Where(c => c.Title.Contains(parameters.searchQuery.Trim()));
             }
+
+            var mappingDictionary = _propertyMappingService.GetPropertyMapping<CoursesDto, Course>();
+
+            collection = collection.ApplySort(parameters.OrderBy, mappingDictionary);
 
             return PagedList<Course>.CreatePagedList(collection, parameters.PageNumber, parameters.PageSize);
         }
@@ -148,6 +158,11 @@ namespace CourseLibrary.Api.Models.Persistence
                                                ||a.FirstName.Contains(searchQuery)
                                                || a.LastName.Contains(searchQuery));
             }
+
+            var authorPropertyMappingDictionary = _propertyMappingService
+                .GetPropertyMapping<AuthorsDto, Author>();
+
+            collection = collection.ApplySort(authorsParameters.OrderBy, authorPropertyMappingDictionary);
 
             return PagedList<Author>.CreatePagedList(
                 collection,

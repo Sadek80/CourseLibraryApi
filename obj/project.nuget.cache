@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "zhCURzLCnceAODWTsB4UDoNLTtE0R4HkHazX4py7guHH7LrUqbsbcfc92lbU3XmkYag0cDB+opCamNXGUt3R7g==",
+  "dgSpecHash": "gqWYJzVuo1v/2LCzcUNcJnZTz2pdYl6AqnuKRNvvWZcbNlEIaMDvChm70xXEIrTEDnzQSW8rr4xgzQAOD8xxew==",
   "success": true,
   "projectFilePath": "D:\\Study\\LinkedIn Learning\\16. ASP.net Core MVC\\CourseLibrary\\CourseLibrary.Api\\CourseLibrary.Api.csproj",
   "expectedPackageFiles": [
@@ -63,6 +63,7 @@
     "C:\\Users\\Sadek\\.nuget\\packages\\system.io.filesystem\\4.3.0\\system.io.filesystem.4.3.0.nupkg.sha512",
     "C:\\Users\\Sadek\\.nuget\\packages\\system.io.filesystem.primitives\\4.3.0\\system.io.filesystem.primitives.4.3.0.nupkg.sha512",
     "C:\\Users\\Sadek\\.nuget\\packages\\system.linq\\4.3.0\\system.linq.4.3.0.nupkg.sha512",
+    "C:\\Users\\Sadek\\.nuget\\packages\\system.linq.dynamic.core\\1.2.14\\system.linq.dynamic.core.1.2.14.nupkg.sha512",
     "C:\\Users\\Sadek\\.nuget\\packages\\system.net.nameresolution\\4.3.0\\system.net.nameresolution.4.3.0.nupkg.sha512",
     "C:\\Users\\Sadek\\.nuget\\packages\\system.net.primitives\\4.3.0\\system.net.primitives.4.3.0.nupkg.sha512",
     "C:\\Users\\Sadek\\.nuget\\packages\\system.private.datacontractserialization\\4.3.0\\system.private.datacontractserialization.4.3.0.nupkg.sha512",

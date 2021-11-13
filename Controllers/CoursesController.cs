@@ -4,6 +4,7 @@ using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.Models.DTOs.CourseDtos;
 using CourseLibrary.Api.ResourcesParameters;
+using CourseLibrary.Api.Services;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -25,14 +26,19 @@ namespace CourseLibrary.Api.Controllers
     {
         private readonly ICourseLibraryRepository _courseLibraryRepository;
         private readonly IMapper _mapper;
+        private readonly IPropertyMappingService _propertyMappingService;
 
-        public CoursesController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper)
+        public CoursesController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper, 
+            IPropertyMappingService propertyMappingService)
         {
             this._courseLibraryRepository = courseLibraryRepository ??
                 throw new ArgumentNullException(nameof(courseLibraryRepository));
 
             this._mapper = mapper ??
                 throw new ArgumentNullException(nameof(mapper));
+
+            this._propertyMappingService = propertyMappingService ?? 
+                throw new ArgumentNullException(nameof(propertyMappingService));
         }
 
         [HttpGet(Name = "GetCoursesForAuthor")]
@@ -42,6 +48,12 @@ namespace CourseLibrary.Api.Controllers
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
+
+            if(!_propertyMappingService.ValidMappingExistsFor<CoursesDto, Course>
+                (parameters.OrderBy))
+            {
+                return BadRequest();
+            }
 
             var courses = _courseLibraryRepository.GetCourses(authorId, parameters);
 
@@ -215,6 +227,7 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.nextPage:
                     return Url.Link("GetCoursesForAuthor", new
                     {
+                        parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber + 1,
                         pageSize = parameters.PageSize
@@ -223,6 +236,7 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.prevPage:
                     return Url.Link("GetCoursesForAuthor", new
                     {
+                        parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber - 1,
                         pageSize = parameters.PageSize
@@ -231,6 +245,7 @@ namespace CourseLibrary.Api.Controllers
                 default:
                     return Url.Link("GetCoursesForAuthor", new
                     {
+                        parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber,
                         pageSize = parameters.PageSize

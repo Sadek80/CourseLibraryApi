@@ -1,6 +1,7 @@
 using CourseLibrary.Api.Models;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.Models.Persistence;
+using CourseLibrary.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -37,6 +38,9 @@ namespace CourseLibrary.Api
 
             // Inject the Course Library Repository through the project
             services.AddScoped<ICourseLibraryRepository, CourseLibraryRepository>();
+
+            // Inject the Mapping Service 
+            services.AddTransient<IPropertyMappingService, PropertyMappingService>();
 
             // Inject the App Data Context through the project
             services.AddDbContext<AppDataContext>(options => 
