@@ -27,9 +27,10 @@ namespace CourseLibrary.Api.Controllers
         private readonly ICourseLibraryRepository _courseLibraryRepository;
         private readonly IMapper _mapper;
         private readonly IPropertyMappingService _propertyMappingService;
+        private readonly IPropertyExistenceChecker _propertyExistenceChecker;
 
         public AuthorsController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper,
-            IPropertyMappingService propertyMappingService)
+            IPropertyMappingService propertyMappingService, IPropertyExistenceChecker propertyExistenceChecker)
         {
             this._courseLibraryRepository = courseLibraryRepository ??
                 throw new ArgumentNullException(nameof(courseLibraryRepository));
@@ -39,6 +40,9 @@ namespace CourseLibrary.Api.Controllers
 
             this._propertyMappingService = propertyMappingService ?? 
                 throw new ArgumentNullException(nameof(propertyMappingService));
+
+            this._propertyExistenceChecker = propertyExistenceChecker ?? 
+                throw new ArgumentNullException(nameof(propertyExistenceChecker));
         }
 
         [HttpGet(Name = "GetAuthors")]
@@ -52,6 +56,9 @@ namespace CourseLibrary.Api.Controllers
             {
                 return BadRequest();
             }
+
+            if (!_propertyExistenceChecker.TypeHasProperties<AuthorsDto>(authorsParameters.Fields))
+                return BadRequest();
 
             var authorsFromRepo = _courseLibraryRepository.GetAuthors(authorsParameters);
 
@@ -77,18 +84,22 @@ namespace CourseLibrary.Api.Controllers
                 JsonSerializer.Serialize(pagingMetaData,
                     new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping}));
 
-            return Ok(_mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo));
+            return Ok(_mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo)
+                                                                    .ShapeData(authorsParameters.Fields));
         }
 
         [HttpGet("{authorId}", Name = "GetAuthor")]
-        public ActionResult<AuthorsDto> GetAuthor(Guid authorId)
+        public ActionResult<AuthorsDto> GetAuthor(Guid authorId, string fields)
         {
+            if (!_propertyExistenceChecker.TypeHasProperties<AuthorsDto>(fields))
+                return BadRequest();
+
             var authorFromRepo = _courseLibraryRepository.GetAuthor(authorId);
 
             if (authorFromRepo == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<AuthorsDto>(authorFromRepo));
+            return Ok(_mapper.Map<AuthorsDto>(authorFromRepo).ShapeData(fields));
         }
 
         [HttpPost]
@@ -194,6 +205,7 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.nextPage:
                     return Url.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         pageSize = authorsResourceParameters.PageSize,
                         pageNumber = authorsResourceParameters.PageNumber + 1,
@@ -204,6 +216,7 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.prevPage:
                     return Url.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         pageSize = authorsResourceParameters.PageSize,
                         pageNumber = authorsResourceParameters.PageNumber - 1,
@@ -214,6 +227,7 @@ namespace CourseLibrary.Api.Controllers
                 default:
                     return Url.Link("GetAuthors", new
                     {
+                        fields = authorsResourceParameters.Fields,
                         orderBy = authorsResourceParameters.OrderBy,
                         pageSize = authorsResourceParameters.PageSize,
                         pageNumber = authorsResourceParameters.PageNumber,

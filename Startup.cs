@@ -42,6 +42,9 @@ namespace CourseLibrary.Api
             // Inject the Mapping Service 
             services.AddTransient<IPropertyMappingService, PropertyMappingService>();
 
+            // Inject the Property Existence Checker
+            services.AddTransient<IPropertyExistenceChecker, PropertyExistenceChecker>();
+
             // Inject the App Data Context through the project
             services.AddDbContext<AppDataContext>(options => 
             options.UseSqlServer(Configuration.GetConnectionString("Default")));

@@ -27,9 +27,10 @@ namespace CourseLibrary.Api.Controllers
         private readonly ICourseLibraryRepository _courseLibraryRepository;
         private readonly IMapper _mapper;
         private readonly IPropertyMappingService _propertyMappingService;
+        private readonly IPropertyExistenceChecker _propertyExistenceChecker;
 
         public CoursesController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper, 
-            IPropertyMappingService propertyMappingService)
+            IPropertyMappingService propertyMappingService, IPropertyExistenceChecker propertyExistenceChecker)
         {
             this._courseLibraryRepository = courseLibraryRepository ??
                 throw new ArgumentNullException(nameof(courseLibraryRepository));
@@ -39,6 +40,9 @@ namespace CourseLibrary.Api.Controllers
 
             this._propertyMappingService = propertyMappingService ?? 
                 throw new ArgumentNullException(nameof(propertyMappingService));
+
+            this._propertyExistenceChecker = propertyExistenceChecker ?? 
+                throw new ArgumentNullException(nameof(propertyExistenceChecker));
         }
 
         [HttpGet(Name = "GetCoursesForAuthor")]
@@ -48,6 +52,9 @@ namespace CourseLibrary.Api.Controllers
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
+
+            if (!_propertyExistenceChecker.TypeHasProperties<CoursesDto>(parameters.Fields))
+                return BadRequest();
 
             if(!_propertyMappingService.ValidMappingExistsFor<CoursesDto, Course>
                 (parameters.OrderBy))
@@ -76,21 +83,25 @@ namespace CourseLibrary.Api.Controllers
             Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagingMetaData,
                 new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
-            return Ok(_mapper.Map<IEnumerable<CoursesDto>>(courses));
+            return Ok(_mapper.Map<IEnumerable<CoursesDto>>(courses)
+                                                           .ShapeData(parameters.Fields));
         }
 
         [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
-        public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId)
+        public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId, string fields)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
+
+            if (!_propertyExistenceChecker.TypeHasProperties<CoursesDto>(fields))
+                return BadRequest();
 
             var course = _courseLibraryRepository.GetCourse(authorId, courseId);
 
             if (course == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<CoursesDto>(course));
+            return Ok(_mapper.Map<CoursesDto>(course).ShapeData(fields));
         }
 
         [HttpPost]
@@ -227,7 +238,8 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.nextPage:
                     return Url.Link("GetCoursesForAuthor", new
                     {
-                        parameters.OrderBy,
+                        fields = parameters.Fields,
+                        orderBy = parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber + 1,
                         pageSize = parameters.PageSize
@@ -236,7 +248,8 @@ namespace CourseLibrary.Api.Controllers
                 case ResourcePagingUriType.prevPage:
                     return Url.Link("GetCoursesForAuthor", new
                     {
-                        parameters.OrderBy,
+                        fields = parameters.Fields,
+                        orderBy = parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber - 1,
                         pageSize = parameters.PageSize
@@ -245,7 +258,8 @@ namespace CourseLibrary.Api.Controllers
                 default:
                     return Url.Link("GetCoursesForAuthor", new
                     {
-                        parameters.OrderBy,
+                        fields = parameters.Fields,
+                        orderBy = parameters.OrderBy,
                         searchQuery = parameters.searchQuery,
                         pageNumber = parameters.PageNumber,
                         pageSize = parameters.PageSize

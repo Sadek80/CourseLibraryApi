@@ -19,5 +19,6 @@ namespace CourseLibrary.Api.ResourcesParameters
         }
 
         public string OrderBy { get; set; }
+        public string Fields { get; set; }
     }
 }
