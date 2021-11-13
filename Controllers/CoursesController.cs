@@ -66,9 +66,9 @@ namespace CourseLibrary.Api.Controllers
             var pagingMetaData = new
             {
                 totalCount = courses.TotalCount,
-                pageSize = parameters.PageSize,
+                pageSize = courses.PageSize,
                 totalPages = courses.TotalPages,
-                currentPage = parameters.PageNumber,
+                currentPage = courses.CurrentPage,
                 nexPageLink,
                 previousPageLink
             };
