@@ -3,6 +3,7 @@ using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.Models.DTOs.AuthorDtos;
+using CourseLibrary.Api.Models.DTOs.Base_Dtos;
 using CourseLibrary.Api.ResourcesParameters;
 using CourseLibrary.Api.Services;
 using Microsoft.AspNetCore.JsonPatch;
@@ -47,7 +48,7 @@ namespace CourseLibrary.Api.Controllers
 
         [HttpGet(Name = "GetAuthors")]
         [HttpHead]
-        public ActionResult<IEnumerable<AuthorsDto>> GetAuthors(
+        public IActionResult GetAuthors(
         [FromQuery]
         AuthorsResourceParameters authorsParameters)
         {
@@ -75,21 +76,42 @@ namespace CourseLibrary.Api.Controllers
                 totalCount = authorsFromRepo.TotalCount,
                 pageSize = authorsFromRepo.PageSize,
                 totalPages = authorsFromRepo.TotalPages,
-                currentPage = authorsFromRepo.CurrentPage,
-                previousPageLink,
-                nextPageLink,
+                currentPage = authorsFromRepo.CurrentPage
             };
 
             Response.Headers.Add("X-Paginations",
                 JsonSerializer.Serialize(pagingMetaData,
                     new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping}));
 
-            return Ok(_mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo)
-                                                                    .ShapeData(authorsParameters.Fields));
+            var links = CreateLinksForAuthors(authorsParameters, authorsFromRepo.HasNext,
+                authorsFromRepo.HasPrevious);
+
+            if (!_propertyExistenceChecker.FieldsHasIdProperty(authorsParameters.Fields))
+                return BadRequest();
+
+            var shappedData = _mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo)
+                                                                    .ShapeData(authorsParameters.Fields);
+
+            var shappedDataWithLinks = shappedData.Select(author =>
+            {
+                var authorsAsDictionary = author as IDictionary<string, object>;
+                var linksForAuthor = CreateLinksForAuthor((Guid)authorsAsDictionary["Id"], null);
+                authorsAsDictionary.Add("links", linksForAuthor);
+
+                return authorsAsDictionary;
+            });
+
+            var linkedResourceToReturn = new
+            {
+                value = shappedDataWithLinks,
+                links
+            };
+
+            return Ok(linkedResourceToReturn);
         }
 
         [HttpGet("{authorId}", Name = "GetAuthor")]
-        public ActionResult<AuthorsDto> GetAuthor(Guid authorId, string fields)
+        public IActionResult GetAuthor(Guid authorId, string fields)
         {
             if (!_propertyExistenceChecker.TypeHasProperties<AuthorsDto>(fields))
                 return BadRequest();
@@ -99,10 +121,17 @@ namespace CourseLibrary.Api.Controllers
             if (authorFromRepo == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<AuthorsDto>(authorFromRepo).ShapeData(fields));
+            var links = CreateLinksForAuthor(authorId, fields);
+
+            var linkedResourceToReturn = _mapper.Map<AuthorsDto>(authorFromRepo)
+                .ShapeData(fields) as IDictionary<string, object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+            return Ok(linkedResourceToReturn);
         }
 
-        [HttpPost]
+        [HttpPost(Name = "CreateAuhtor")]
         public ActionResult<AuthorsDto> CreateAuthor(AuthorForCreationDto author)
         {
             var authorForCreation = _mapper.Map<Author>(author);
@@ -111,7 +140,15 @@ namespace CourseLibrary.Api.Controllers
             _courseLibraryRepository.Save();
 
             var authorDto = _mapper.Map<AuthorsDto>(authorForCreation);
-            return CreatedAtRoute("GetAuthor", new { authorId = authorDto.Id }, authorDto);
+
+            var links = CreateLinksForAuthor(authorDto.Id, null);
+
+            var linkedResourceToReturn = authorDto.ShapeData(null) as IDictionary<string, object>;
+            linkedResourceToReturn.Add("links", links);
+
+            return CreatedAtRoute("GetAuthor", 
+                new { authorId = linkedResourceToReturn["Id"] },
+                linkedResourceToReturn);
         }
 
         [HttpOptions]
@@ -121,7 +158,7 @@ namespace CourseLibrary.Api.Controllers
             return Ok();
         }
 
-        [HttpPut("{authorId}")]
+        [HttpPut("{authorId}", Name = "UpdateAuthor")]
         public IActionResult UpdateAuthor(Guid authorId, AuthorForUpdateDto authorForUpdate)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
@@ -148,7 +185,7 @@ namespace CourseLibrary.Api.Controllers
 
         }
 
-        [HttpPatch("{authorId}")]
+        [HttpPatch("{authorId}", Name = "UpdateAuhtorPartially")]
         public IActionResult PartiallyUpdateAuthor(Guid authorId,
             JsonPatchDocument<AuthorForUpdateDto> patchDocument)
         {
@@ -175,7 +212,7 @@ namespace CourseLibrary.Api.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{authorId}")]
+        [HttpDelete("{authorId}", Name = "DeleteAuthor")]
         public IActionResult DeleteAuthor(Guid authorId)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
@@ -224,6 +261,7 @@ namespace CourseLibrary.Api.Controllers
                         searchQuery = authorsResourceParameters.searchQuery
                     });
 
+                case ResourcePagingUriType.current:
                 default:
                     return Url.Link("GetAuthors", new
                     {
@@ -235,6 +273,74 @@ namespace CourseLibrary.Api.Controllers
                         searchQuery = authorsResourceParameters.searchQuery
                     });
             }
+
+        }
+        private IEnumerable<LinkDto> CreateLinksForAuthor(Guid authorId, string fields)
+        {
+            var links = new List<LinkDto>();
+
+            if (string.IsNullOrWhiteSpace(fields))
+            {
+                links.Add(new LinkDto(Url.Link("GetAuthor", new { authorId }),
+                    "self",
+                    "GET"));
+            }
+            else
+            {
+                links.Add(new LinkDto(Url.Link("GetAuthor", new { authorId, fields }),
+                    "self",
+                    "GET"));
+            }
+
+            links.Add(new LinkDto(Url.Link("DeleteAuthor", new { authorId }),
+                "delete_author",
+                "DELETE"));
+
+            links.Add(new LinkDto(Url.Link("UpdateAuthor", new { authorId }),
+                "update_author",
+                "PUT"));
+
+            links.Add(new LinkDto(Url.Link("UpdateAuhtorPartially", new { authorId }),
+                "update_author_partially",
+                "PATCH"));
+
+
+            links.Add(new LinkDto(Url.Link("GetCoursesForAuthor", new { authorId }),
+                "courses",
+                "GET"));
+
+            links.Add(new LinkDto(Url.Link("CreateCourseForAuthor", new { authorId }),
+                "create_course_for_author",
+                "POST"));
+
+            return links;
+        }
+
+        private IEnumerable<LinkDto> CreateLinksForAuthors(AuthorsResourceParameters parameters,
+            bool hasNext,
+            bool hasPerv)
+        {
+            var links = new List<LinkDto>();
+
+            links.Add(new LinkDto(CreateAuthorResourceUri(parameters, ResourcePagingUriType.current),
+                "self",
+                "GET"));
+
+            links.Add(new LinkDto(Url.Link("CreateAuhtor", null),
+                "create_author",
+                "POST"));
+
+            if (hasNext)
+                links.Add(new LinkDto(CreateAuthorResourceUri(parameters, ResourcePagingUriType.nextPage),
+                    "NextPage",
+                    "GET"));
+
+            if(hasPerv)
+                links.Add(new LinkDto(CreateAuthorResourceUri(parameters, ResourcePagingUriType.prevPage),
+                    "PreviousPage",
+                    "GET"));
+
+            return links;
         }
     }
 }

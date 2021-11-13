@@ -8,6 +8,7 @@ namespace CourseLibrary.Api.Helpers
     public enum ResourcePagingUriType
     {
         nextPage,
-        prevPage
+        prevPage,
+        current
     }
 }

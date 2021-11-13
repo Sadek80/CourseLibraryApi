@@ -30,5 +30,25 @@ namespace CourseLibrary.Api.Services
 
             return true;
         }
+
+        public bool FieldsHasIdProperty(string fields)
+        {
+            if (string.IsNullOrWhiteSpace(fields))
+                return true;
+
+            var splittedProperties = fields.Split(',');
+
+            foreach (var property in splittedProperties)
+            {
+                var propertyName = property.Trim();
+
+                if (propertyName.Equals("Id", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

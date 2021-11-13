@@ -2,6 +2,7 @@
 using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
+using CourseLibrary.Api.Models.DTOs.Base_Dtos;
 using CourseLibrary.Api.Models.DTOs.CourseDtos;
 using CourseLibrary.Api.ResourcesParameters;
 using CourseLibrary.Api.Services;
@@ -29,7 +30,7 @@ namespace CourseLibrary.Api.Controllers
         private readonly IPropertyMappingService _propertyMappingService;
         private readonly IPropertyExistenceChecker _propertyExistenceChecker;
 
-        public CoursesController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper, 
+        public CoursesController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper,
             IPropertyMappingService propertyMappingService, IPropertyExistenceChecker propertyExistenceChecker)
         {
             this._courseLibraryRepository = courseLibraryRepository ??
@@ -38,10 +39,10 @@ namespace CourseLibrary.Api.Controllers
             this._mapper = mapper ??
                 throw new ArgumentNullException(nameof(mapper));
 
-            this._propertyMappingService = propertyMappingService ?? 
+            this._propertyMappingService = propertyMappingService ??
                 throw new ArgumentNullException(nameof(propertyMappingService));
 
-            this._propertyExistenceChecker = propertyExistenceChecker ?? 
+            this._propertyExistenceChecker = propertyExistenceChecker ??
                 throw new ArgumentNullException(nameof(propertyExistenceChecker));
         }
 
@@ -70,21 +71,45 @@ namespace CourseLibrary.Api.Controllers
             var previousPageLink = courses.HasPrevious ? CreateCoursesResourceUri(parameters,
                                                             ResourcePagingUriType.prevPage) : null;
 
+            var currentPageLink = CreateCoursesResourceUri(parameters, ResourcePagingUriType.current);
+
             var pagingMetaData = new
             {
                 totalCount = courses.TotalCount,
                 pageSize = courses.PageSize,
                 totalPages = courses.TotalPages,
                 currentPage = courses.CurrentPage,
-                nexPageLink,
-                previousPageLink
             };
 
             Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagingMetaData,
                 new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
-            return Ok(_mapper.Map<IEnumerable<CoursesDto>>(courses)
-                                                           .ShapeData(parameters.Fields));
+            var links = CreateLinksForCourses(authorId, currentPageLink, nexPageLink, previousPageLink);
+
+            if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
+                return BadRequest();
+
+            var shappedData = _mapper.Map<IEnumerable<CoursesDto>>(courses)
+                                                           .ShapeData(parameters.Fields);
+
+            var shappedDataWithLinks = shappedData.Select(course =>
+            {
+                var shappedDataAsDictionary = course as IDictionary<string, object>;
+                var linksForCourse = CreateLinksForCourse((Guid) shappedDataAsDictionary["AuthorId"],
+                   (Guid) shappedDataAsDictionary["Id"], parameters.Fields);
+
+                shappedDataAsDictionary.Add("links", linksForCourse);
+
+                return shappedDataAsDictionary;
+            });
+
+            var linkedResourceToReturn = new
+            {
+                value = shappedDataWithLinks,
+                links
+            };
+
+            return Ok(linkedResourceToReturn);
         }
 
         [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
@@ -101,10 +126,17 @@ namespace CourseLibrary.Api.Controllers
             if (course == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<CoursesDto>(course).ShapeData(fields));
+            var links = CreateLinksForCourse(authorId ,courseId, fields);
+
+            var linkedResourceToReturn = _mapper.Map<CoursesDto>(course).ShapeData(fields)
+                as IDictionary<string, object>;
+
+            linkedResourceToReturn.Add("links", links);
+
+            return Ok(linkedResourceToReturn);
         }
 
-        [HttpPost]
+        [HttpPost(Name = "CreateCourseForAuthor")]
         public ActionResult<CoursesDto> CreateCourseForAuthor(Guid authorId, CourseForCreationDto course)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
@@ -121,7 +153,7 @@ namespace CourseLibrary.Api.Controllers
                 new { authorId = authorId, courseId = courseForCreation.Id }, courseDto);
         }
 
-        [HttpPut("{courseId}")]
+        [HttpPut("{courseId}", Name = "UpdateCourseForAuthor")]
         public IActionResult UpdateCourse(Guid authorId, Guid courseId, CourseForUpdateDto course)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
@@ -153,7 +185,7 @@ namespace CourseLibrary.Api.Controllers
 
         }
 
-        [HttpPatch("{courseId}")]
+        [HttpPatch("{courseId}", Name = "UpdateCourseForAuthorPartially")]
         public IActionResult PartiallyUpdateCourse(Guid authorId, 
             Guid courseId, 
             JsonPatchDocument<CourseForUpdateDto> patchDocument)
@@ -202,7 +234,7 @@ namespace CourseLibrary.Api.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{courseId}")]
+        [HttpDelete("{courseId}", Name = "DeleteCourse")]
         public IActionResult DeleteCourse(Guid authorId, Guid courseId)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
@@ -255,6 +287,7 @@ namespace CourseLibrary.Api.Controllers
                         pageSize = parameters.PageSize
                     });
 
+                case ResourcePagingUriType.current:
                 default:
                     return Url.Link("GetCoursesForAuthor", new
                     {
@@ -265,6 +298,65 @@ namespace CourseLibrary.Api.Controllers
                         pageSize = parameters.PageSize
                     });
             }
+        }
+
+        private IEnumerable<LinkDto> CreateLinksForCourses(Guid authorId , string currentPage,
+            string hasNext,
+            string hasPrev)
+        {
+            var links = new List<LinkDto>();
+
+            links.Add(new LinkDto(currentPage,
+                "self",
+                "GET"));
+
+            links.Add(new LinkDto(Url.Link("CreateCourseForAuthor", new { authorId}),
+                "create_course_for_author",
+                "POST"));
+
+            if (!string.IsNullOrWhiteSpace(hasNext))
+                links.Add(new LinkDto(hasNext,
+                    "nextPage",
+                    "GET"));
+
+            if(!string.IsNullOrWhiteSpace(hasPrev))
+                links.Add(new LinkDto(hasPrev,
+                    "previousPage",
+                    "GET"));
+
+            return links;
+        }
+
+        private IEnumerable<LinkDto> CreateLinksForCourse(Guid authorId, Guid courseId, string fields)
+        {
+            var links = new List<LinkDto>();
+
+            if (string.IsNullOrWhiteSpace(fields))
+            {
+                links.Add(new LinkDto(Url.Link("GetCourseForAuthor", new { authorId ,courseId }),
+                    "self",
+                    "GET"));
+            }
+            else
+            {
+                links.Add(new LinkDto(Url.Link("GetCourseForAuthor", new { authorId ,courseId, fields }),
+                    "self",
+                    "GET"));
+            }
+
+            links.Add(new LinkDto(Url.Link("DeleteCourse", new {authorId , courseId }),
+                "delete_course",
+                "DELETE"));
+
+            links.Add(new LinkDto(Url.Link("UpdateCourseForAuthor", new {authorId, courseId }),
+                "update_course_for_author",
+                "PUT"));
+
+            links.Add(new LinkDto(Url.Link("UpdateCourseForAuthorPartially", new {authorId, courseId }),
+                "update_course_partially",
+                "PATCH"));
+
+            return links;
         }
     }
 }
