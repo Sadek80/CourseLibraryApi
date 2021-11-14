@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,10 +48,15 @@ namespace CourseLibrary.Api.Controllers
         }
 
         [HttpGet(Name = "GetCoursesForAuthor")]
+        [Produces("application/json", "application/problem+json", "application/vnd.marvin.hateoas+json")]
         public ActionResult<IEnumerable<CoursesDto>> GetCoursesForAuthor(Guid authorId,
             [FromQuery] 
-            BaseResourcesParameters parameters)
+            BaseResourcesParameters parameters,
+            [FromHeader(Name = "Accept")] string mediaType)
         {
+            if (!MediaTypeHeaderValue.TryParse(mediaType, out MediaTypeHeaderValue parsedMediaType))
+                return BadRequest();
+
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
 
@@ -62,9 +68,6 @@ namespace CourseLibrary.Api.Controllers
             {
                 return BadRequest();
             }
-
-            if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
-                return BadRequest();
 
             var courses = _courseLibraryRepository.GetCourses(authorId, parameters);
 
@@ -79,34 +82,47 @@ namespace CourseLibrary.Api.Controllers
             Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagingMetaData,
                 new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
-            var links = CreateLinksForCourses(authorId, parameters, courses.HasNext, courses.HasPrevious);
-
-            var shappedData = _mapper.Map<IEnumerable<CoursesDto>>(courses)
-                                                           .ShapeData(parameters.Fields);
-
-            var shappedDataWithLinks = shappedData.Select(course =>
+            if (mediaType == "application/vnd.marvin.hateoas+json")
             {
-                var shappedDataAsDictionary = course as IDictionary<string, object>;
-                var linksForCourse = CreateLinksForCourse((Guid) shappedDataAsDictionary["AuthorId"],
-                   (Guid) shappedDataAsDictionary["Id"], parameters.Fields);
+                if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
+                    return BadRequest();
 
-                shappedDataAsDictionary.Add("links", linksForCourse);
+                var links = CreateLinksForCourses(authorId, parameters, courses.HasNext, courses.HasPrevious);
 
-                return shappedDataAsDictionary;
-            });
+                var shappedData = _mapper.Map<IEnumerable<CoursesDto>>(courses)
+                                                               .ShapeData(parameters.Fields);
 
-            var linkedResourceToReturn = new
-            {
-                value = shappedDataWithLinks,
-                links
-            };
+                var shappedDataWithLinks = shappedData.Select(course =>
+                {
+                    var shappedDataAsDictionary = course as IDictionary<string, object>;
+                    var linksForCourse = CreateLinksForCourse((Guid)shappedDataAsDictionary["AuthorId"],
+                       (Guid)shappedDataAsDictionary["Id"], parameters.Fields);
 
-            return Ok(linkedResourceToReturn);
+                    shappedDataAsDictionary.Add("links", linksForCourse);
+
+                    return shappedDataAsDictionary;
+                });
+
+                var linkedResourceToReturn = new
+                {
+                    value = shappedDataWithLinks,
+                    links
+                };
+
+                return Ok(linkedResourceToReturn);
+            }
+
+            return Ok(_mapper.Map<IEnumerable<CoursesDto>>(courses)
+                                                               .ShapeData(parameters.Fields));
         }
 
         [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
-        public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId, string fields)
+        public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId, string fields,
+            [FromHeader(Name = "Accept")] string mediaType)
         {
+            if (!MediaTypeHeaderValue.TryParse(mediaType, out MediaTypeHeaderValue parsedMediaType))
+                return BadRequest();
+
             if (!_courseLibraryRepository.AuthorExists(authorId))
                 return NotFound();
 
@@ -118,14 +134,19 @@ namespace CourseLibrary.Api.Controllers
             if (course == null)
                 return NotFound();
 
-            var links = CreateLinksForCourse(authorId ,courseId, fields);
+            if (mediaType == "application/vnd.marvin.hateoas+json")
+            {
+                var links = CreateLinksForCourse(authorId, courseId, fields);
 
-            var linkedResourceToReturn = _mapper.Map<CoursesDto>(course).ShapeData(fields)
-                as IDictionary<string, object>;
+                var linkedResourceToReturn = _mapper.Map<CoursesDto>(course).ShapeData(fields)
+                    as IDictionary<string, object>;
 
-            linkedResourceToReturn.Add("links", links);
+                linkedResourceToReturn.Add("links", links);
 
-            return Ok(linkedResourceToReturn);
+                return Ok(linkedResourceToReturn);
+            }
+
+            return Ok(_mapper.Map<CoursesDto>(course).ShapeData(fields));
         }
 
         [HttpPost(Name = "CreateCourseForAuthor")]
@@ -247,6 +268,14 @@ namespace CourseLibrary.Api.Controllers
 
         public override ActionResult ValidationProblem([ActionResultObjectValue]
             ModelStateDictionary modelStateDictionary)
+        {
+            var options = HttpContext.RequestServices.
+                GetRequiredService<IOptions<ApiBehaviorOptions>>();
+
+            return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
+        }
+
+        public override ActionResult ValidationProblem()
         {
             var options = HttpContext.RequestServices.
                 GetRequiredService<IOptions<ApiBehaviorOptions>>();

@@ -24,6 +24,7 @@ namespace CourseLibrary.Api.Profiles
             CreateMap<AuthorForCreationDto, Author>();
             CreateMap<AuthorForUpdateDto, Author>();
             CreateMap<Author, AuthorForUpdateDto>();
+            CreateMap<Author, AuthorFullDto>();
 
         }
     }

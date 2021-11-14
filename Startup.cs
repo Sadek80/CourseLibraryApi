@@ -7,12 +7,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
@@ -53,60 +55,74 @@ namespace CourseLibrary.Api
             services.AddControllers(setup =>
             {
                 setup.ReturnHttpNotAcceptable = true;
+
             }).AddNewtonsoftJson(setupAction =>
             {
                 setupAction.SerializerSettings.ContractResolver =
                     new CamelCasePropertyNamesContractResolver();
             })
                .AddXmlDataContractSerializerFormatters()
-              .ConfigureApiBehaviorOptions(setupAction => 
-              {
-                  setupAction.InvalidModelStateResponseFactory = context => 
-                  {
-                      // Create problem details object
-                      var problemDetailsFactory = context.HttpContext.RequestServices
-                          .GetRequiredService<ProblemDetailsFactory>();
+               .ConfigureApiBehaviorOptions(setupAction =>
+               {
+                   setupAction.InvalidModelStateResponseFactory = context =>
+                   {
+                       // Create problem details object
+                       var problemDetailsFactory = context.HttpContext.RequestServices
+                           .GetRequiredService<ProblemDetailsFactory>();
 
-                      var problemDetails = problemDetailsFactory.CreateValidationProblemDetails(
-                          context.HttpContext,
-                          context.ModelState);
+                       var problemDetails = problemDetailsFactory.CreateValidationProblemDetails(
+                           context.HttpContext,
+                           context.ModelState);
 
-                      // Set Additional Info
-                      problemDetails.Detail = "See the Errors Field for Deatails";
-                      problemDetails.Instance = context.HttpContext.Request.Path;
+                       // Set Additional Info
+                       problemDetails.Detail = "See the Errors Field for Deatails";
+                       problemDetails.Instance = context.HttpContext.Request.Path;
 
-                      // Get ActioneExecutingContext Object
-                      var actionExecutingContext = context as Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext;
-                      
-                      // Check if there's validation errors
-                      // and if the body not empty or any property not parsed
-                      // return details and 422 status code
-                      if((context.ModelState.ErrorCount > 0) && 
-                        (context is ControllerContext || actionExecutingContext?.ActionArguments.Count
-                        == context.ActionDescriptor.Parameters.Count))
-                      {
-                          problemDetails.Type = "https://courselibrary.com/modelvalidationproblem";
-                          problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
-                          problemDetails.Title = "one or more validation errors occured";
+                       // Get ActioneExecutingContext Object
+                       var actionExecutingContext = context as Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext;
 
-                          return new UnprocessableEntityObjectResult(problemDetails)
-                          {
-                              ContentTypes = {"application/problem+json"}
-                          };
-                      }
+                       // Check if there's validation errors
+                       // and if the body not empty or any property not parsed
+                       // return details and 422 status code
+                       if ((context.ModelState.ErrorCount > 0) &&
+                         (context is ControllerContext || actionExecutingContext?.ActionArguments.Count
+                         == context.ActionDescriptor.Parameters.Count))
+                       {
+                           problemDetails.Type = "https://courselibrary.com/modelvalidationproblem";
+                           problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
+                           problemDetails.Title = "one or more validation errors occured";
 
-                      // If it's parcing or body empty problem
-                      // Return details and 400 status code
-                      problemDetails.Status = StatusCodes.Status400BadRequest;
-                      problemDetails.Title = "one or more errors on input occured";
+                           return new UnprocessableEntityObjectResult(problemDetails)
+                           {
+                               ContentTypes = { "application/problem+json" }
+                           };
+                       }
 
-                      return new BadRequestObjectResult(problemDetails)
-                      {
-                          ContentTypes = {"application/problem+json"}
-                      };
+                       // If it's parsing or body empty problem
+                       // Return details and 400 status code
+                       problemDetails.Status = StatusCodes.Status400BadRequest;
+                       problemDetails.Title = "one or more errors on input occured";
 
-                  };
-              });
+                       return new BadRequestObjectResult(problemDetails)
+                       {
+                           ContentTypes = { "application/problem+json" }
+                       };
+
+                   };
+               });
+
+            // Add a new media type to support
+            services.Configure<MvcOptions>(config =>
+            {
+                var newtonsoftJsonOutputFormatter = config.OutputFormatters.
+                OfType<NewtonsoftJsonOutputFormatter>()?.FirstOrDefault();
+
+                if (newtonsoftJsonOutputFormatter != null)
+                {
+                    newtonsoftJsonOutputFormatter.SupportedMediaTypes.Add(MediaTypeHeaderValue.Parse("application/vnd.marvin.hateoas+json"));
+                }
+            });
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
