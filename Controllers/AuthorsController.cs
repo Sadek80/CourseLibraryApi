@@ -61,15 +61,10 @@ namespace CourseLibrary.Api.Controllers
             if (!_propertyExistenceChecker.TypeHasProperties<AuthorsDto>(authorsParameters.Fields))
                 return BadRequest();
 
+            if (!_propertyExistenceChecker.FieldsHasIdProperty(authorsParameters.Fields))
+                return BadRequest();
+
             var authorsFromRepo = _courseLibraryRepository.GetAuthors(authorsParameters);
-
-            var nextPageLink = authorsFromRepo.HasNext ?
-                CreateAuthorResourceUri(authorsParameters,
-                    ResourcePagingUriType.nextPage) : null;
-
-            var previousPageLink = authorsFromRepo.HasPrevious ?
-                CreateAuthorResourceUri(authorsParameters,
-                    ResourcePagingUriType.prevPage) : null;
 
             var pagingMetaData = new
             {
@@ -85,9 +80,6 @@ namespace CourseLibrary.Api.Controllers
 
             var links = CreateLinksForAuthors(authorsParameters, authorsFromRepo.HasNext,
                 authorsFromRepo.HasPrevious);
-
-            if (!_propertyExistenceChecker.FieldsHasIdProperty(authorsParameters.Fields))
-                return BadRequest();
 
             var shappedData = _mapper.Map<IEnumerable<AuthorsDto>>(authorsFromRepo)
                                                                     .ShapeData(authorsParameters.Fields);

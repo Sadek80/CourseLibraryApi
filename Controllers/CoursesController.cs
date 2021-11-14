@@ -63,15 +63,10 @@ namespace CourseLibrary.Api.Controllers
                 return BadRequest();
             }
 
+            if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
+                return BadRequest();
+
             var courses = _courseLibraryRepository.GetCourses(authorId, parameters);
-
-            var nexPageLink = courses.HasNext ? CreateCoursesResourceUri(parameters,
-                                                            ResourcePagingUriType.nextPage) : null;
-
-            var previousPageLink = courses.HasPrevious ? CreateCoursesResourceUri(parameters,
-                                                            ResourcePagingUriType.prevPage) : null;
-
-            var currentPageLink = CreateCoursesResourceUri(parameters, ResourcePagingUriType.current);
 
             var pagingMetaData = new
             {
@@ -85,9 +80,6 @@ namespace CourseLibrary.Api.Controllers
                 new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
             var links = CreateLinksForCourses(authorId, parameters, courses.HasNext, courses.HasPrevious);
-
-            if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
-                return BadRequest();
 
             var shappedData = _mapper.Map<IEnumerable<CoursesDto>>(courses)
                                                            .ShapeData(parameters.Fields);
