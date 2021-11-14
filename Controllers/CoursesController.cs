@@ -84,7 +84,7 @@ namespace CourseLibrary.Api.Controllers
             Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagingMetaData,
                 new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
 
-            var links = CreateLinksForCourses(authorId, currentPageLink, nexPageLink, previousPageLink);
+            var links = CreateLinksForCourses(authorId, parameters, courses.HasNext, courses.HasPrevious);
 
             if (!_propertyExistenceChecker.FieldsHasIdProperty(parameters.Fields))
                 return BadRequest();
@@ -300,13 +300,13 @@ namespace CourseLibrary.Api.Controllers
             }
         }
 
-        private IEnumerable<LinkDto> CreateLinksForCourses(Guid authorId , string currentPage,
-            string hasNext,
-            string hasPrev)
+        private IEnumerable<LinkDto> CreateLinksForCourses(Guid authorId , BaseResourcesParameters parameters,
+            bool hasNext,
+            bool hasPrev)
         {
             var links = new List<LinkDto>();
 
-            links.Add(new LinkDto(currentPage,
+            links.Add(new LinkDto(Url.Link("GetCoursesForAuthor", parameters),
                 "self",
                 "GET"));
 
@@ -314,13 +314,13 @@ namespace CourseLibrary.Api.Controllers
                 "create_course_for_author",
                 "POST"));
 
-            if (!string.IsNullOrWhiteSpace(hasNext))
-                links.Add(new LinkDto(hasNext,
+            if (hasNext)
+                links.Add(new LinkDto(CreateCoursesResourceUri(parameters, ResourcePagingUriType.nextPage),
                     "nextPage",
                     "GET"));
 
-            if(!string.IsNullOrWhiteSpace(hasPrev))
-                links.Add(new LinkDto(hasPrev,
+            if(hasPrev)
+                links.Add(new LinkDto(CreateCoursesResourceUri(parameters, ResourcePagingUriType.prevPage),
                     "previousPage",
                     "GET"));
 
