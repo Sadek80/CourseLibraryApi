@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using CourseLibrary.Api.ActionConstraints;
+using CourseLibrary.Api.ActionAttributes;
 using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
@@ -25,6 +25,7 @@ namespace CourseLibrary.Api.Controllers
 {
     [ApiController]
     [Route("api/authors")]
+    [ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
     public class AuthorsController : ControllerBase
     {
         private readonly ICourseLibraryRepository _courseLibraryRepository;

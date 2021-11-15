@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CourseLibrary.Api.ActionAttributes;
 using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
@@ -6,6 +7,7 @@ using CourseLibrary.Api.Models.DTOs.Base_Dtos;
 using CourseLibrary.Api.Models.DTOs.CourseDtos;
 using CourseLibrary.Api.ResourcesParameters;
 using CourseLibrary.Api.Services;
+using Marvin.Cache.Headers;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -24,6 +26,9 @@ namespace CourseLibrary.Api.Controllers
 {
     [ApiController]
     [Route("api/authors/{authorId}/courses")]
+    [ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
+    //[HttpCacheExpiration(CacheLocation = CacheLocation.Public)]
+    //[HttpCacheValidation(MustRevalidate = false)]
     public class CoursesController : ControllerBase
     {
         private readonly ICourseLibraryRepository _courseLibraryRepository;
@@ -117,6 +122,7 @@ namespace CourseLibrary.Api.Controllers
         }
 
         [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
+        [ETagFilter(200)]
         public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId, string fields,
             [FromHeader(Name = "Accept")] string mediaType)
         {

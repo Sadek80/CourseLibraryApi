@@ -2,6 +2,7 @@ using CourseLibrary.Api.Models;
 using CourseLibrary.Api.Models.Core.Repositories;
 using CourseLibrary.Api.Models.Persistence;
 using CourseLibrary.Api.Services;
+using Marvin.Cache.Headers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -35,6 +36,21 @@ namespace CourseLibrary.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Supports Cache headers with ETag
+           // services.AddHttpCacheHeaders((expirationModelOptions) =>
+           // {
+           //     expirationModelOptions.MaxAge = 60;
+           //     expirationModelOptions.CacheLocation = Marvin.Cache.Headers.CacheLocation.Private;
+           // },
+           //(validationModelOptions) =>
+           //{
+           //    validationModelOptions.MustRevalidate = false;
+           //});
+
+
+            // Supports Caching
+            services.AddResponseCaching();
+
             // Inject the services of AutoMapper
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -55,6 +71,10 @@ namespace CourseLibrary.Api
             services.AddControllers(setup =>
             {
                 setup.ReturnHttpNotAcceptable = true;
+                setup.CacheProfiles.Add("240SecondsCacheProfile", new CacheProfile()
+                {
+                    Duration = 240
+                });
 
             }).AddNewtonsoftJson(setupAction =>
             {
@@ -144,6 +164,10 @@ namespace CourseLibrary.Api
                     });
                 });
             }
+
+            app.UseResponseCaching();
+
+            //app.UseHttpCacheHeaders();
 
             app.UseRouting();
 

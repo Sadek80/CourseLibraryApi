@@ -60,3 +60,5 @@ D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\
 D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\bin\Debug\net5.0\Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll
 D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\bin\Debug\net5.0\Newtonsoft.Json.Bson.dll
 D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\bin\Debug\net5.0\System.Linq.Dynamic.Core.dll
+D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\bin\Debug\net5.0\Marvin.Cache.Headers.dll
+D:\Study\LinkedIn Learning\16. ASP.net Core MVC\CourseLibrary\CourseLibrary.Api\obj\Debug\net5.0\CourseLibrary.Api.MvcApplicationPartsAssemblyInfo.cs

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CourseLibrary.Api.ActionConstraints
+namespace CourseLibrary.Api.ActionAttributes
 {
     [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = true)]
     public class RequestHeaderMatchesTypeAttribute : Attribute, IActionConstraint
