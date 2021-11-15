@@ -19,9 +19,10 @@ namespace CourseLibrary.Api.Profiles
                     opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
                 .ForMember(
                     dest => dest.Age,
-                    opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge()));
+                    opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge(src.DateOfDeath)));
 
             CreateMap<AuthorForCreationDto, Author>();
+            CreateMap<AuthorWithDateOfDeathForCreationDto, Author>();
             CreateMap<AuthorForUpdateDto, Author>();
             CreateMap<Author, AuthorForUpdateDto>();
             CreateMap<Author, AuthorFullDto>();

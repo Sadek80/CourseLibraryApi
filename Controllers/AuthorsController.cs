@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CourseLibrary.Api.ActionConstraints;
 using CourseLibrary.Api.Helpers;
 using CourseLibrary.Api.Models.Core.Domain;
 using CourseLibrary.Api.Models.Core.Repositories;
@@ -225,7 +226,34 @@ namespace CourseLibrary.Api.Controllers
             return Ok(linkedResourceToReturn);
         }
 
+        [HttpPost(Name = "CreateAuhtorWithDateOfDeath")]
+        [RequestHeaderMatchesTypeAttribute("Content-Type",
+            "application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+        [Consumes("application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+        public ActionResult<AuthorsDto> CreateAuhtorWithDateOfDeath(AuthorWithDateOfDeathForCreationDto author)
+        {
+            var authorForCreation = _mapper.Map<Author>(author);
+
+            _courseLibraryRepository.AddAuthor(authorForCreation);
+            _courseLibraryRepository.Save();
+
+            var authorDto = _mapper.Map<AuthorsDto>(authorForCreation);
+
+            var links = CreateLinksForAuthor(authorDto.Id, null);
+
+            var linkedResourceToReturn = authorDto.ShapeData(null) as IDictionary<string, object>;
+            linkedResourceToReturn.Add("links", links);
+
+            return CreatedAtRoute("GetAuthor",
+                new { authorId = linkedResourceToReturn["Id"] },
+                linkedResourceToReturn);
+        }
+
     [HttpPost(Name = "CreateAuhtor")]
+    [RequestHeaderMatchesType("Content-Type"," application/json",
+            "application/vnd.marvin.authorforcreation+json")]
+    [Consumes("application/json",
+            "application/vnd.marvin.authorforcreation+json")]
     public ActionResult<AuthorsDto> CreateAuthor(AuthorForCreationDto author)
     {
         var authorForCreation = _mapper.Map<Author>(author);
@@ -244,6 +272,8 @@ namespace CourseLibrary.Api.Controllers
             new { authorId = linkedResourceToReturn["Id"] },
             linkedResourceToReturn);
     }
+
+
 
     [HttpOptions]
     public IActionResult GetAuthorOptions()

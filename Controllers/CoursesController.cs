@@ -275,14 +275,6 @@ namespace CourseLibrary.Api.Controllers
             return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
         }
 
-        public override ActionResult ValidationProblem()
-        {
-            var options = HttpContext.RequestServices.
-                GetRequiredService<IOptions<ApiBehaviorOptions>>();
-
-            return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
-        }
-
         private string CreateCoursesResourceUri(BaseResourcesParameters parameters, 
             ResourcePagingUriType uriType)
         {
