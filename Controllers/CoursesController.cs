@@ -26,7 +26,7 @@ namespace CourseLibrary.Api.Controllers
 {
     [ApiController]
     [Route("api/authors/{authorId}/courses")]
-    [ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
+    [ResponseCache(CacheProfileName = "60SecondsCacheProfile")]
     //[HttpCacheExpiration(CacheLocation = CacheLocation.Public)]
     //[HttpCacheValidation(MustRevalidate = false)]
     public class CoursesController : ControllerBase
@@ -122,7 +122,7 @@ namespace CourseLibrary.Api.Controllers
         }
 
         [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
-        [ETagFilter(200)]
+        [Etag]
         public ActionResult<CoursesDto> GetSingleCourseForAuthor(Guid authorId, Guid courseId, string fields,
             [FromHeader(Name = "Accept")] string mediaType)
         {
@@ -149,10 +149,19 @@ namespace CourseLibrary.Api.Controllers
 
                 linkedResourceToReturn.Add("links", links);
 
+
                 return Ok(linkedResourceToReturn);
             }
 
-            return Ok(_mapper.Map<CoursesDto>(course).ShapeData(fields));
+            var resourceToReturn = _mapper.Map<CoursesDto>(course).ShapeData(fields);
+
+            var etag = resourceToReturn.GetEtag();
+
+
+            if (!Request.GetEtagHandler().NonMatch(etag))
+                return StatusCode(304, resourceToReturn);
+
+            return Ok(resourceToReturn);
         }
 
         [HttpPost(Name = "CreateCourseForAuthor")]

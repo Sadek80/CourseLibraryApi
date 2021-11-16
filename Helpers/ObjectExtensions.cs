@@ -1,4 +1,7 @@
-﻿using System;
+﻿using CourseLibrary.Api.ActionAttributes;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -57,6 +60,12 @@ namespace CourseLibrary.Api.Helpers
 
             return expandoObject;
             
+        }
+
+        public static string GetEtag(this Object expando)
+        {
+            var serialized = JsonConvert.SerializeObject(expando);
+            return EtagHashGenerator.ForString(serialized);
         }
     }
 }
