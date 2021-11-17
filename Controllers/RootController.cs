@@ -9,7 +9,7 @@ namespace CourseLibrary.Api.Controllers
 {
     [Route("api")]
     [ApiController]
-    [ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
+    [ResponseCache(CacheProfileName = "60SecondsCacheProfile")]
     public class RootController : ControllerBase
     {
         [HttpGet(Name = "Root")]
