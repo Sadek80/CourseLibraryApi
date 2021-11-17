@@ -62,9 +62,9 @@ namespace CourseLibrary.Api.Helpers
             
         }
 
-        public static string GetEtag(this Object expando)
+        public static string GetEtag<T>(this T entity)
         {
-            var serialized = JsonConvert.SerializeObject(expando);
+            var serialized = JsonConvert.SerializeObject(entity);
             return EtagHashGenerator.ForString(serialized);
         }
     }
