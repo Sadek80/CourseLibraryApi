@@ -251,7 +251,7 @@ namespace CourseLibrary.Api.Controllers
         }
 
     [HttpPost(Name = "CreateAuhtor")]
-    [RequestHeaderMatchesType("Content-Type"," application/json",
+    [RequestHeaderMatchesType("Content-Type","application/json",
             "application/vnd.marvin.authorforcreation+json")]
     [Consumes("application/json",
             "application/vnd.marvin.authorforcreation+json")]

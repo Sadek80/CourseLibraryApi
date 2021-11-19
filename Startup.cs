@@ -76,12 +76,12 @@ namespace CourseLibrary.Api
                     Duration = 60
                 });
 
+
             }).AddNewtonsoftJson(setupAction =>
             {
                 setupAction.SerializerSettings.ContractResolver =
                     new CamelCasePropertyNamesContractResolver();
             })
-               .AddXmlDataContractSerializerFormatters()
                .ConfigureApiBehaviorOptions(setupAction =>
                {
                    setupAction.InvalidModelStateResponseFactory = context =>
@@ -131,6 +131,7 @@ namespace CourseLibrary.Api
                    };
                });
 
+            services.AddMvc();
             // Add a new media type to support
             services.Configure<MvcOptions>(config =>
             {
